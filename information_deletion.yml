@@ -1,0 +1,43 @@
+policies:
+  - name: s3-enable-versioning
+    resource: s3
+    comment: Enable versioning on the S3 bucket
+    filters:
+      - or:
+        - type: value
+          key: Versioning.Status
+          value: Suspended
+        - type: value
+          key: Versioning.Status
+          value: absent
+    actions:
+      - type: toggle-versioning
+        enabled: true
+
+  - name: identify-ebs-with-delete-on-termination
+    resource: ec2
+    description: |
+      Identify the EBS volumes with DeleteOnTermination attribute attached to instances.
+    filters:
+      - type: value
+        key: BlockDeviceMappings[].Ebs.DeleteOnTermination
+        value: true
+    actions:
+      - type: invoke-lambda
+        function: disable-ebs-delete-on-termination #lambda function
+
+  - name: protect-ec2-termination
+    resource: aws.ec2
+    description: |
+      Enable termination protection for EC2 instances
+    filters:
+      - "State.Name": "running"
+      - type: instance-attribute
+        attribute: disableApiTermination
+        key: "Value"
+        value: false
+    actions:
+      - type: invoke-lambda
+        function: enable-termination-protection  #lambda function
+
+
