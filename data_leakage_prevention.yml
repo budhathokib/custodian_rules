@@ -32,6 +32,15 @@ policies:
         crypto: aws:kms
         key-id: 9c3983be-c6cf-11e6-9d9d-cec0c932ce01
 
+  - name : rds-encryption
+    resource: aws.rds
+    comment: Ensure that encryption is enabled for RDS Instances
+    filters:
+       - "StorageEncrypted": false
+  # actions:
+  #   -type : notify
+
+
   - name : macie-enable
     comment : Identifies the account where AWS Macie is not enabled and then enable it
     resource: aws.account
