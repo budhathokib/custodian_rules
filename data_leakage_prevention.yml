@@ -1,0 +1,37 @@
+policies:
+  - name: s3-block-public-acess
+    resource: s3
+    comment: Ensure S3 Buckets Are Private
+    filters:
+      - type: check-public-block
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+    actions:
+      - type: set-public-block
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+
+  - name: s3-bucket-encryption
+    comment: Enable default KMS encryption on S3 buckets
+    resource: s3
+    filters:
+      - type: bucket-encryption
+        state: false
+        crypto: aws:kms
+        key: alias/some/alias/key
+    actions:
+      - type: set-bucket-encryption
+        crypto: aws:kms
+        key: alias/some/alias/key
+        bucket-key: true
+
+  - name: s3-encrypt-objects
+    resource: s3
+    actions:
+      - type: encrypt-keys
+        crypto: aws:kms
+        key-id: 9c3983be-c6cf-11e6-9d9d-cec0c932ce01
+
+
+
+
