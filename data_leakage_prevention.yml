@@ -6,10 +6,6 @@ policies:
       - type: check-public-block
         BlockPublicAcls: false
         BlockPublicPolicy: false
-    actions:
-      - type: set-public-block
-        BlockPublicAcls: true
-        BlockPublicPolicy: true
 
   - name: s3-bucket-encryption
     comment: Enable default KMS encryption on S3 buckets
@@ -19,11 +15,7 @@ policies:
         state: false
         crypto: aws:kms
         key: alias/some/alias/key
-    actions:
-      - type: set-bucket-encryption
-        crypto: aws:kms
-        key: alias/some/alias/key
-        bucket-key: true
+
 
   - name: s3-encrypt-objects
     resource: s3
@@ -37,8 +29,7 @@ policies:
     comment: Ensure that encryption is enabled for RDS Instances
     filters:
        - "StorageEncrypted": false
-  # actions:
-  #   -type : notify
+
 
 
   - name : macie-enable
@@ -49,8 +40,6 @@ policies:
         key: status
         value: Disabled
         op: eq
-  # actions:
-  #   -type : notify
 
 
 

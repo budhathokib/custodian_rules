@@ -1,0 +1,219 @@
+policies:
+  - name: associate-cloudfront-with-waf
+    description: |
+      Ensure CloudFront distributions are associated with a specified AWS WAF Web ACL.
+    resource: aws.distribution
+    filters:
+      - type: value
+        key: WebACLId
+        value: ""
+
+  - name: associate-appsync-with-waf
+    description: Ensure all AppSync APIs are associated with a specified AWS WAF Web ACL.
+    resource: aws.graphql-api
+    filters:
+      - type: value
+        key: WebACLId
+        value: ""
+
+  - name: change-default-sg-rds
+    resource: aws.rds
+    description: |
+      Identify RDS instances using the default security group
+    filters:
+      - type: security-group
+        key: GroupName
+        value: "default"
+
+  - name: s3-public-block-access-not-enabled
+    resource: aws.s3
+    description: |
+      Ensure all S3 buckets have Block Public Access settings enabled.
+    filters:
+      - type: check-public-block
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+
+  - name: rest-api-gateway-stages-ssl-backend-auth
+    resource: rest-stage
+    description: API Gateway REST API stages should be configured to use SSL certificates for backend authentication
+    filters:
+       - type: value
+         key: clientCertificateId
+         value: absent
+
+  - name: sagemaker-direct-internet-access
+    description: Amazon SageMaker Notebook Instances Should Not Have Direct Internet Access
+    resource: aws.sagemaker-notebook
+    filters:
+      - type: value
+        key: DirectInternetAccess
+        value: Enabled
+
+  - name: cloudfront-distributions-require-SSL-certificate
+    resource: aws.distribution
+    description: "CloudFront distributions should require encryption in transit"
+    filters:
+       - and:
+         - type: distribution-config
+           key: DefaultCacheBehavior.ViewerProtocolPolicy
+           op: not-equal
+           value: redirect-to-https
+         - type: distribution-config
+           key: DefaultCacheBehavior.ViewerProtocolPolicy
+           op: not-equal
+           value: https-only
+
+  - name: internet-gateway-authorized-vpc-only
+    resource: internet-gateway
+    description: Ensure Internet Gateway has authorized VPC
+    filters:
+      - type: value
+        key: Attachments
+        value: empty
+        op: equal
+
+  - name: elb-listener-is-not-using-unencrypted-protocol
+    description: Ensure ELB are not using unencrypted protocol
+    resource: app-elb
+    filters:
+      - or:
+        - type: listener
+          key: Protocol
+          value: HTTPS
+          op: ne
+        - type: listener
+          key: Certificates
+          value: ""
+          op: eq
+
+  - name: detect-public-access-eks-endpoints
+    resource: eks
+    description: |
+      Detect EKS clusters with public API access enabled and no authorized IP restrictions.
+    filters:
+      - type: value
+        key: resourcesVpcConfig.endpointPublicAccess
+        value: true
+
+  - name: redshift-cluster-public-access-check
+    description: Ensure Redshift Cluster are not publicly accessible
+    resource: redshift
+    filters:
+      - type: value
+        key: "PubliclyAccessible"
+        value: true
+
+  - name: dms-instance-not-publicly-accessible
+    resource: aws.dms-instance
+    description: DMS replication instances should not be publicly accessible
+    filters:
+      - and:
+          - type: value
+            key: PubliclyAccessible
+            value: true
+
+  - name: rest-api-gateway-associated-aws-waf-web-acl
+    resource: rest-stage
+    description: API Gateway Should Be Associated With An AWS WAF Web ACL
+    filters:
+       - type: value
+         key: webAclArn
+         value: absent
+
+  - name: block-public-access-s3-access-points
+    resource: aws.s3-access-point
+    description: Ensures that public access is blocked for all S3 access points.
+    filters:
+      - type: value
+        key:  PublicAccessBlockConfiguration.BlockPublicAcls
+        value: false
+
+  - name: lambda-should-in-vpc
+    description: Lambda functions should be in a VPC
+    resource: lambda
+    filters:
+      - or:
+        - type: value
+          key: VpcConfig
+          value: absent
+        - type: value
+          key: VpcConfig.VpcId
+          value: ""
+
+  - name: vpc-network-acl-unused
+    description: Unused network access control lists should be removed
+    resource: network-acl
+    filters:
+      - type: value
+        key: Associations
+        value: []
+
+  - name: vpn-tunnels-status-verify
+    description: Both VPN tunnels provided by AWS Site-to-Site VPN should be in UP status
+    resource: aws.vpn-connection
+    filters:
+    - or:
+      - type: value
+        key: VgwTelemetry[1].Status
+        value: "DOWN"
+      - type: value
+        key: VgwTelemetry[0].Status
+        value: "DOWN"
+
+  - name: redshift-enhanced-vpc-routing-enabled
+    description: Amazon Redshift Clusters VPC Routing Enabled
+    resource: redshift
+    filters:
+      - type: value
+        key: EnhancedVpcRouting
+        value: false
+        op: eq
+
+  - name: rds-instance-restrict-public-accessibility
+    description: Ensure that Public Accessibility is restricted for Database Instances
+    resource: rds
+    filters:
+      - PubliclyAccessible: true
+
+  - name: vpc-sg-opened-only-to-authorized-ports
+    resource: aws.security-group
+    description: Ensure security group doesn't have 0.0.0.0/0 ingress to port 20,21,22,139,445,3306 or 3389
+    filters:
+      - type: ingress
+        Ports: [20,21,22,139,445,3306,3389]
+        Cidr:
+          value: 0.0.0.0/0
+          op: eq
+          value_type: cidr
+
+  - name: restrict-wildcard-in-s3-bucket-policy
+    resource: aws.s3
+    description: Detect and restrict the use of wildcard (*) for principals or resources in S3 bucket policies.
+    filters:
+      - type: has-statement
+        statements:
+          - Effect: Allow
+            Principal: "*"
+      - type: has-statement
+        statements:
+          - Effect: Allow
+            Resource: "*"
+
+  - name: iam-profile-to-ec2-instances
+    description: Ensure all EC2 instances have a specific IAM instance profile attached
+    resource: aws.ec2
+    filters:
+      - type: value
+        key: IamInstanceProfile
+        value: absent
+
+  - name: network-firewall-no-stateless-rules
+    resource: aws.firewall
+    filters:
+    - type: value
+      key: 'RuleGroup.RulesSourceStateless'
+      value: ""
+      op: eq

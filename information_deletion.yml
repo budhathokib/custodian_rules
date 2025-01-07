@@ -10,9 +10,6 @@ policies:
         - type: value
           key: Versioning.Status
           value: absent
-    actions:
-      - type: toggle-versioning
-        enabled: true
 
   - name: identify-ebs-with-delete-on-termination
     resource: ec2
@@ -22,9 +19,6 @@ policies:
       - type: value
         key: BlockDeviceMappings[].Ebs.DeleteOnTermination
         value: true
-    actions:
-      - type: invoke-lambda
-        function: disable-ebs-delete-on-termination #lambda function
 
   - name: protect-ec2-termination
     resource: aws.ec2
@@ -36,8 +30,15 @@ policies:
         attribute: disableApiTermination
         key: "Value"
         value: false
-    actions:
-      - type: invoke-lambda
-        function: enable-termination-protection  #lambda function
 
+  - name: rds-cluster-deletion-protection-enable
+    description: Ensure Deletion Protection is enabled for RDS DB Cluster
+    resource: rds-cluster
+    filters:
+      - DeletionProtection: false
 
+  - name: rds-instance-deletion-protection-enable
+    description: Ensure Deletion Protection is enabled for RDS DB Instance
+    resource: rds
+    filters:
+      - DeletionProtection: false

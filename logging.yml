@@ -1,0 +1,15 @@
+policies:
+  - name: enable-cloudtrail-all-regions
+    resource: aws.cloudtrail
+    filters:
+      - type: status
+        key: IsMultiRegionTrail
+        value: false
+
+
+  - name: cloudtrail-set-log
+    resource: aws.cloudtrail
+    filters:
+     - or:
+       - KmsKeyId: empty
+       - LogFileValidationEnabled: false

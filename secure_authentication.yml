@@ -15,10 +15,6 @@ policies:
     filters:
       - type: used
       - type: has-allow-all
-    actions:
-      - type: delete
-      #- type: invoke-lambda
-      #  lambda: arn:aws:lambda:us-east-1:123456789
 
   - name: enforce-strong-password-policy
     resource: aws.account
@@ -58,17 +54,6 @@ policies:
           key: MaxPasswordAge
           op: gt
           value: 90
-    actions:
-      - type: set-password-policy
-        policy:
-          RequireLowercaseCharacters: true
-          RequireUppercaseCharacters: true
-          RequireSymbols: true
-          RequireNumbers: true
-          MinimumPasswordLength: 14
-          PasswordReusePrevention: 10
-          MaxPasswordAge: 90
-          AllowUsersToChangePassword: true
 
   - name: delete-unused-credentials
     resource: aws.iam-user
@@ -94,11 +79,7 @@ policies:
             value: 30
             op: gt
             value_type: age
-    actions :
-      - type: delete
-        options:
-          - console-access
-          - access-keys   # console access and access keys delete not user
+
 
   - name: iam-access-key-rotation
     resource: aws.iam-user
@@ -113,8 +94,7 @@ policies:
         value: 30
         op: gt
         value_type: age
-    # actions :
-    #    - type : notify
+
 
   - name: enable-cmk-rotation
     resource: kms-key
@@ -122,9 +102,6 @@ policies:
       - type: key-rotation-status
         key: KeyRotationEnabled
         value: False
-    actions:
-      - type: set-rotation
-        state: True
 
 
 
