@@ -1,0 +1,59 @@
+policies:
+  - name: cloudfront-distributions-aws-waf-enabled
+    resource: aws.distribution
+    description: CloudFront Distributions Should Have AWS WAF Enabled
+    filters:
+      - type: value
+        key: WebACLId
+        value: ""
+
+  - name: elb-waf-enabled
+    resource: app-elb
+    description: Ensure Waf enabled on ALB
+    filters:
+      - type: value
+        key: WebACLId
+        value: ""
+
+  - name: rest-api-gateway-stage-associated-aws-waf-web-acl
+    resource: rest-stage
+    description: API Gateway Should Be Associated With An AWS WAF Web ACL
+    filters:
+      - type: value
+        key: webAclArn
+        value: absent
+
+  - name: enable-guardduty
+    resource: account
+    filters:
+      - type: guard-duty
+        Detector.Status: disabled
+
+  - name: ensure-ec2-has-security-groups
+    resource: ec2
+    description: Checks if EC2 instances have at least one associated security group
+    filters:
+      - type: security-group
+        key: group-id
+        value: null
+        op: eq
+
+  - name: ensure-vpc-has-nacl
+    resource: vpc
+    description: Ensures that  VPC has Network ACLs (NACLs) associated with it
+    filters:
+      - type: value
+        key: NetworkAcls
+        op: eq
+        value: null
+
+  - name: flag-non-acm-ssl-resources
+    resource: aws.elb
+    description: Identify load balancers that are not configured to use AWS Certificate Manager (ACM) for managing SSL/TLS certificates.
+    filters:
+      - type: is-ssl
+      - not:
+        - type: value
+          key: ListenerDescriptions[].Listener.SSLCertificateId
+          op: regex
+          value: arn:aws:acm:.*

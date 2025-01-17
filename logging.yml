@@ -1,15 +1,333 @@
 policies:
   - name: enable-cloudtrail-all-regions
+    description: Enable CloudTrail in all regions
     resource: aws.cloudtrail
     filters:
       - type: status
         key: IsMultiRegionTrail
         value: false
 
-
-  - name: cloudtrail-set-log
+  - name: cloudtrail-log-file-validation-is-enabled
+    description : Ensure CloudTrail log file validation is enabled
     resource: aws.cloudtrail
     filters:
-     - or:
-       - KmsKeyId: empty
-       - LogFileValidationEnabled: false
+      - LogFileValidationEnabled: false
+
+  - name: cloudfront-distribution-logging-enabled
+    resource: aws.distribution
+    description: CloudFront distribution should have logging enabled
+    filters:
+      - type: distribution-config
+        key: Logging.Enabled
+        value: False
+
+  - name: wafv2-logging-enabled
+    description: Logging should be enabled on AWS WAFv2 regional and global web access control list (ACLs)
+    resource: aws.wafv2
+    filters:
+      - not:
+          - type: logging
+            key: ResourceArn
+            value: present
+
+  - name: redshift-audit-logging-enabled
+    description: Redshift Cluster Audit Logging Should Be Enabled
+    resource: aws.redshift
+    filters:
+    - type: logging
+      key: LoggingEnabled
+      value: false
+
+  - name: flow-logs-are-enabled-in-all-region
+    description: Ensure VPC flow logging is enabled in all VPCs
+    resource: vpc
+    filters:
+      - flow-logs
+
+  - name: elb-accesslog-enabled-check
+    description: ELB Accesslog Enabled Check
+    resource: elb
+    filters:
+      - type: is-not-logging
+
+  - name: ensure-dns-query-logging-enabled
+    description: Enable DNS Query logging for Amazon Route 53 public hosted zones
+    resource: aws.hostedzone
+    filters:
+      - type: query-logging-enabled
+        state: false
+
+  - name: check-cloudwatch-log-group-retention
+    resource: log-group
+    description: Ensure that CloudWatch Log Groups have a defined retention period and the period is within acceptable limits.
+    filters:
+      - or:
+          - retentionInDays: null
+          - type: value
+            key: retentionInDays
+            value: 30
+            op: less-than
+
+  - name: ensure-apigateway-v2-access-logs
+    resource: rest-api
+    description: Ensure that Amazon API Gateway V2 APIs have access logging enabled.
+    filters:
+      - type: value
+        key: accessLogSettings
+        value: null
+
+  - name: enable-waf-v2-cloudwatch-metrics
+    resource: wafv2
+    description: Ensure that AWS WAF V2 rules and rule groups have CloudWatch metrics enabled.
+    filters:
+      - type: value
+        key: VisibilityConfig.MetricEnabled
+        value: false
+
+  - name: enable-security-hub
+    resource: account
+    description: Ensure AWS Security Hub is enabled in the account.
+    filters:
+      - type: securityhub
+        enabled : false
+
+  - name: enable-sns-delivery-status-logging
+    resource: sns
+    description: Ensure delivery status logging is enabled for Amazon SNS topics.
+    filters:
+      - type: value
+        key: "DeliveryStatusLoggingEnabled"
+        value: false
+
+  - name: eb-log-streaming-to-cloudwatch-enabled
+    resource: aws.elasticbeanstalk
+    description: Checks if log streaming to AWS CloudWatch Logs is enabled for Elastic Beanstalk environments.
+    filters:
+      - type: value
+        key: OptionSettings[?OptionName=='aws:cloudwatch:logs:enabled'].Value
+        value: 'true'
+        op: ne
+
+  - name: rest-api-gateway-stage-logging-enabled
+    resource: rest-stage
+    description: API Gateway Stage Logging Should Be Enabled
+    filters:
+       - type: value
+         key: accessLogSettings.destinationArn
+         value: absent
+
+  - name: rds-logging-enabled
+    resource: aws.rds
+    description: Checks if logging is enabled for RDS instances, including general logs, error logs, and audit logs.
+    filters:
+      - type: value
+        key: "LoggingEnabled"
+        value: "true"
+        op: ne
+
+  - name: enable-s3-server-access-logging
+    resource: aws.s3
+    description: Ensure server access logging is enabled for S3 buckets
+    filters:
+      - type: value
+        key: Logging.Enabled
+        value: false
+
+  - name: enable-cloudtrail-for-s3
+    resource: aws.cloudtrail
+    description: "Ensure CloudTrail is logging S3 data events"
+    filters:
+      - type: value
+        key: TrailStatus
+        value: "Enabled"
+
+  - name: opensearch-has-enabled-slow-logs-to-cw-logs
+    description: Ensure AWS OpenSearch domains have enabled the support for publishing slow logs to AWS CloudWatch Logs
+    resource: aws.opensearch-serverless
+    filters:
+      - and:
+        - type: value
+          key: Deleted
+          value: false
+        - or:
+          - type: value
+            key: LogPublishingOptions
+            value: absent
+          - or:
+            - type: value
+              key: LogPublishingOptions.INDEX_SLOW_LOGS
+              value: absent
+            - type: value
+              key: LogPublishingOptions.INDEX_SLOW_LOGS.Enabled
+              value: false
+          - or:
+            - type: value
+              key: LogPublishingOptions.SEARCH_SLOW_LOGS
+              value: absent
+            - type: value
+              key: LogPublishingOptions.SEARCH_SLOW_LOGS.Enabled
+              value: false
+
+  - name: eks-encrypt-secrets
+    resource: eks
+    description: Ensure encryption is enabled for Kubernetes secrets using a specified KMS key in an EKS cluster.
+    filters:
+      - type: value
+        key: encryptionConfig
+        value: []
+        op: eq
+
+  - name: dynamodb-encrypted-aws-kms
+    resource: aws.dynamodb-table
+    description: DynamoDB table should be encrypted with AWS KMS
+    filters:
+      - type: value
+        key: SSEDescription.KMSMasterKeyArn
+        value: absent
+
+  - name: dax-encrypt-at-rest
+    resource: dax
+    description: Ensures that encryption at rest is enabled for DynamoDB Accelerator (DAX) clusters.
+    filters:
+      - type: value
+        key: SSEDescription.SSEEnabled
+        value: false
+        op: eq
+
+  - name: sqs-encrypt-at-rest
+    resource: sqs
+    description: Ensures that encryption at rest is enabled for all Amazon SQS queues using AWS KMS.
+    filters:
+      - type: value
+        key: Attributes.KmsMasterKeyId
+        value: ""
+        op: eq
+
+  - name: redshift-encrypt-at-rest
+    resource: redshift
+    description: Ensures that encryption at rest is enabled for all Amazon Redshift clusters.
+    filters:
+      - type: value
+        key: Encrypted
+        value: false
+        op: eq
+
+  - name: sagemaker-notebook-encryption
+    resource: aws.sagemaker-notebook
+    description: Sagemaker Notebook Instance Encryption Missing.
+    filters:
+      - KmsKeyId: absent
+
+  - name: cloudwatch-log-group-encryption
+    resource: aws.log-group
+    description: Ensure CloudWatch log groups are encrypted using KMS.
+    filters:
+      - type: value
+        key: kmsKeyId
+        value: absent
+        op: eq
+
+  - name: sns-encrypted-at-rest
+    resource: aws.sns
+    description: SNS topics should be encrypted at rest using AWS KMS
+    filters:
+          - KmsMasterKeyId: absent
+
+  - name: apigateway-caching-verify
+    description: API Gateway stage caching verify
+    resource: rest-stage
+    filters:
+      - or:
+        - type: value
+          key: methodSettings."*/*".cachingEnabled
+          value: absent
+        - type: value
+          key: methodSettings."*/*".cachingEnabled
+          value: false
+
+  - name: apigateway-stage-cache-data-encrypted
+    resource: rest-stage
+    description: API Gateway REST API cache data should be encrypted at rest
+    filters:
+      - or:
+        - type: value
+          key: 'methodSettings."*/*".cacheDataEncrypted'
+          value: absent
+        - type: value
+          key: 'methodSettings."*/*".cacheDataEncrypted'
+          value: false
+
+  - name: s3-bucket-encryption-set
+    description: Ensure S3 bucket encryption is enabled
+    resource: s3
+    filters:
+      - type: bucket-encryption
+        state: False
+
+  - name: cloudtrail-logs-are-encrypted-using-kms
+    resource: aws.cloudtrail
+    description: Ensure CloudTrail logs are encrypted at rest using KMS
+    filters:
+        -  KmsKeyId: empty
+
+  - name: enable-encryption-on-attached-ebs
+    description: Ensure attached EBS volumes are encrypted
+    resource: ebs
+    filters:
+      - and:
+        - State: in-use
+        - Encrypted: false
+
+  - name: efs-encryption-is-enabled-for-data-at-rest
+    description: Ensure EFS Encryption is enabled for data at rest
+    resource: efs
+    filters:
+      - Encrypted: false
+
+  - name: rds-instance-encryption-enable
+    description: Ensure Encryption is enabled for the database Instance
+    resource: rds
+    filters:
+      - StorageEncrypted: false
+
+  - name: rds-cluster-encryption-enable
+    description: Ensure Encryption is enabled for the RDS cluster
+    resource: rds-cluster
+    filters:
+      - StorageEncrypted: false
+
+  - name: rds-snapshots-encryotion-enabled
+    description: Ensure RDS snapshots are encrypted
+    resource: rds-snapshot
+    filters:
+      - Encrypted: false
+
+  - name: redis-clusters-are-encrypted-at-rest
+    description: Ensure that AWS ElastiCache Redis clusters are Data At-Rest encrypted
+    resource: elasticache-group
+    filters:
+      - type: value
+        key: AtRestEncryptionEnabled
+        value: true
+        op: not-equal
+
+  - name: enable-ebs-default-encryption
+    resource: ebs
+    description: Ensures that EBS default encryption is enabled in the account.
+    filters:
+      - type: value
+        key: Encryption
+        value: false
+        op: equal
+
+  - name: opensearch-encryption-at-rest
+    description: Amazon OpenSearch Domains Should Have Encryption At Rest Enabled
+    resource: aws.opensearch-serverless
+    filters:
+      - type: value
+        key: EncryptionAtRestOptions.Enabled
+        value: false
+
+
+
+
